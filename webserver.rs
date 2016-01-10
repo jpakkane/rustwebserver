@@ -52,6 +52,7 @@ fn write_reply(headers: Vec<String>, stream: &mut BufWriter<TcpStream>) {
     let binarycontent = content.into_bytes();
     let mut replyheaders: Vec<String> = Vec::new();
     replyheaders.push("HTTP/1.1 ".to_string() + &statuscode);
+    replyheaders.push("Server: Rust test server".to_string());
     replyheaders.push("Content-Type: text/html; charset=UTF-8".to_string());
     replyheaders.push(format!("Content-Length: {}", binarycontent.len()));
     replyheaders.push("Connection: close".to_string());
@@ -61,6 +62,7 @@ fn write_reply(headers: Vec<String>, stream: &mut BufWriter<TcpStream>) {
         stream.write(&crlf).unwrap();
     }
     stream.write(&binarycontent).unwrap();
+    stream.flush().unwrap();
 }
 
 fn handle_client(stream: TcpStream) {

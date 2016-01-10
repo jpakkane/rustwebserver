@@ -15,21 +15,26 @@
  *
  */
 
-use std::io;
-use std::io::Read;
-use std::io::prelude;
 use std::net::{TcpListener, TcpStream};
+use std::io::BufReader;
+use std::io::BufRead;
+use std::net::Shutdown;
+
+fn read_request(stream: &mut BufReader<TcpStream>) {
+    loop {
+        let mut line = String::new();
+        let len = stream.read_line(&mut line).unwrap();
+        if len == 2 {
+            return;
+        }
+        println!("{}", line);
+    }
+}
 
 fn handle_client(mut stream: TcpStream) {
-    let mut buffer = Vec::new();
-    match stream.read_to_end(&mut buffer) {
-        Ok(_) => {
-            println!("Read input.");
-        }
-        Err(e) => {
-            println!("Error reading request:\n{}", e);
-        }
-    }
+    let mut bs = BufReader::new(stream);
+    read_request(&mut bs);
+    bs.into_inner().shutdown(Shutdown::Both);
 }
 
 fn run_server(address: &str) {

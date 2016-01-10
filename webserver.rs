@@ -15,6 +15,28 @@
  *
  */
 
+use std::net::{TcpListener, TcpStream};
+
+fn handle_client(stream: TcpStream) {
+    println!("Got connection.");
+}
+
+fn run_server(address: &str) {
+    println!("Starting web server at {}.", address);
+    let listener = TcpListener::bind(address).unwrap();
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => {
+                handle_client(stream);
+            }
+            Err(e) => {
+                println!("Connection failed:\n{}\n", e);
+            }
+        }
+    }
+}
+
 fn main() {
-    println!("I am a web server (not really).");
+    let address = "127.0.0.1:1234";
+    run_server(address);
 }

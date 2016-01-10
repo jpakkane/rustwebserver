@@ -15,10 +15,21 @@
  *
  */
 
+use std::io;
+use std::io::Read;
+use std::io::prelude;
 use std::net::{TcpListener, TcpStream};
 
-fn handle_client(stream: TcpStream) {
-    println!("Got connection.");
+fn handle_client(mut stream: TcpStream) {
+    let mut buffer = Vec::new();
+    match stream.read_to_end(&mut buffer) {
+        Ok(_) => {
+            println!("Read input.");
+        }
+        Err(e) => {
+            println!("Error reading request:\n{}", e);
+        }
+    }
 }
 
 fn run_server(address: &str) {
@@ -40,3 +51,4 @@ fn main() {
     let address = "127.0.0.1:1234";
     run_server(address);
 }
+

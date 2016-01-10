@@ -17,24 +17,58 @@
 
 use std::net::{TcpListener, TcpStream};
 use std::io::BufReader;
+use std::io::BufWriter;
 use std::io::BufRead;
+use std::io::Write;
 use std::net::Shutdown;
 
-fn read_request(stream: &mut BufReader<TcpStream>) {
+fn read_request(stream: &mut BufReader<TcpStream>) -> Vec<String> {
+    let mut headers: Vec<String> = Vec::new();
     loop {
         let mut line = String::new();
         let len = stream.read_line(&mut line).unwrap();
         if len == 2 {
-            return;
+            return headers;
         }
-        println!("{}", line);
+        line.pop().unwrap();
+        line.pop().unwrap();
+        headers.push(line);
     }
 }
 
-fn handle_client(mut stream: TcpStream) {
-    let mut bs = BufReader::new(stream);
-    read_request(&mut bs);
-    bs.into_inner().shutdown(Shutdown::Both);
+fn write_reply(headers: Vec<String>, stream: &mut BufWriter<TcpStream>) {
+    let ref request = headers[0];
+    let items: Vec<&str> = request.split_whitespace().collect();
+    let mut content = String::new();
+    let mut statuscode = String::new();
+    let crlf: Vec<u8> = vec![0xd, 0xa];
+    if items[0] == "GET" {
+        content.push_str("<html><head><title>Ok</title></head><body>Request accepted</body></html>");
+        statuscode.push_str("200 OK");
+    } else {
+        content.push_str("<html><head><title>Fail</title></head><body>Invalid request</body></html>");
+        statuscode.push_str("404");
+    }
+    let binarycontent = content.into_bytes();
+    let mut replyheaders: Vec<String> = Vec::new();
+    replyheaders.push("HTTP/1.1 ".to_string() + &statuscode);
+    replyheaders.push("Content-Type: text/html; charset=UTF-8".to_string());
+    replyheaders.push(format!("Content-Length: {}", binarycontent.len()));
+    replyheaders.push("Connection: close".to_string());
+    replyheaders.push("".to_string());
+    for h in replyheaders {
+        stream.write(&h.into_bytes()).unwrap();
+        stream.write(&crlf).unwrap();
+    }
+    stream.write(&binarycontent).unwrap();
+}
+
+fn handle_client(stream: TcpStream) {
+    let mut br = BufReader::new(stream);
+    let headers = read_request(&mut br);
+    let mut bw = BufWriter::new(br.into_inner());
+    write_reply(headers, &mut bw);
+    bw.into_inner().unwrap().shutdown(Shutdown::Both).unwrap();
 }
 
 fn run_server(address: &str) {
